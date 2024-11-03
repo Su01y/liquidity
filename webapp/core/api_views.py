@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from django.contrib import auth, messages
 from django.contrib.auth import authenticate
 from drf_yasg.utils import swagger_auto_schema
+from django.views.decorators.csrf import csrf_exempt
 
 from .wallet.wallet import send_tokensBSC
 from .blocks import get_current_or_create_open_block
@@ -100,30 +101,36 @@ def register(request: Request) -> Response:
 def bets(request: Request) -> Response:
     user_profile = UserProfile.objects.get(user=request.user)
 
-    idea_info = get_idea_info(user_profile.crypto_wallet_address)
-    matter_info = get_matter_info(user_profile.crypto_wallet_address)
-    matter_balance = float(matter_info["balance_formatted"] if matter_info else 0)
-    idea_balance = float(idea_info["balance_formatted"] if idea_info else 0)
+    try:
+        idea_info = get_idea_info(user_profile.crypto_wallet_address)
+        matter_info = get_matter_info(user_profile.crypto_wallet_address)
+        matter_balance = float(matter_info["balance_formatted"] if matter_info else 0)
+        idea_balance = float(idea_info["balance_formatted"] if idea_info else 0)
 
-    bet_list = Bet.objects.filter(
-        user=request.user, deleted_at__isnull=True, is_active=True
-    ).order_by("created_at")
-    bet_data = MakeBetSerializer(bet_list, many=True).data  # Используем сериализатор для списка
+        bet_list = Bet.objects.filter(
+            user=request.user, deleted_at__isnull=True, is_active=True
+        ).order_by("created_at")
+        bet_data = MakeBetSerializer(bet_list, many=True).data
 
-    gas_price = get_gas_price_in_usdt()
-    bnb_info = get_bnb_info(user_profile.crypto_wallet_address)
-    bnb_balance = float(bnb_info["balance_formatted"] if bnb_info else 0)
-    app_wallet_balance = get_bnb_info(APP_WALLET)["balance_formatted"]
+        gas_price = get_gas_price_in_usdt()
+        bnb_info = get_bnb_info(user_profile.crypto_wallet_address)
+        bnb_balance = float(bnb_info["balance_formatted"] if bnb_info else 0)
+        app_wallet_balance = get_bnb_info(APP_WALLET)["balance_formatted"]
 
-    response_data = {
-        "app_wallet": app_wallet_balance,
-        "gas_price": gas_price,
-        "bet_list": bet_data,
-        "user_matter_balance": matter_balance,
-        "user_idea_balance": idea_balance,
-        "user_bnb_balance": bnb_balance,
-    }
-    return Response(response_data, status=status.HTTP_200_OK)
+        response_data = {
+            "app_wallet": app_wallet_balance,
+            "gas_price": gas_price,
+            "bet_list": bet_data,
+            "user_matter_balance": matter_balance,
+            "user_idea_balance": idea_balance,
+            "user_bnb_balance": bnb_balance,
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": f"Could not fetch bets.\n{e}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @swagger_auto_schema(
@@ -139,10 +146,16 @@ def create_bet(request: Request) -> Response:
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    idea_info = get_idea_info(user_profile.crypto_wallet_address)
-    matter_info = get_matter_info(user_profile.crypto_wallet_address)
-    matter_balance = float(matter_info["balance_formatted"] if matter_info else 0)
-    gas_price = get_gas_price_in_usdt()
+    try:
+        idea_info = get_idea_info(user_profile.crypto_wallet_address)
+        matter_info = get_matter_info(user_profile.crypto_wallet_address)
+        matter_balance = float(matter_info["balance_formatted"] if matter_info else 0)
+        gas_price = get_gas_price_in_usdt()
+    except Exception as e:
+        return Response(
+            {"error": "Error in crypto account login"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     if float(serializer.validated_data["bet_size"]) > matter_balance:
         return Response(
@@ -367,7 +380,7 @@ def profile(request: Request) -> Response:
 
     except Exception as e:
         return Response(
-            {"error": "Could not fetch matter and idea token price."},
+            {"error": f"Could not fetch matter and idea token price.\n{e}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
