@@ -1,3 +1,5 @@
+import base64
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -54,12 +56,18 @@ def login(request: Request) -> Response:
     username = serializer.validated_data['username']
     password = serializer.validated_data['password']
     user = authenticate(request, username=username, password=password)
+    basic_token = base64.b64encode(f"{username}:{password}".encode()).decode()
 
     if user is None:
         return Response({'error': 'Invalid username or password.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     auth.login(request, user)
-    return Response({'message': f'Successfully logged in as {user.username}.'}, status=status.HTTP_200_OK)
+    return Response({
+            'message': f'Successfully logged in as {user.username}.',
+            'basic_token': f"Basic {basic_token}"
+        },
+        status=status.HTTP_200_OK
+    )
 
 
 @api_view(['GET'])
@@ -92,8 +100,18 @@ def register(request: Request) -> Response:
     user_profile.crypto_wallet_address = wallet["address"]
 
     user_profile.save()
-    return Response({'message': 'User registered successfully', 'username': user.username},
-                    status=status.HTTP_201_CREATED)
+
+    username = user.username
+    password = request.data.get("password1")
+    basic_token = base64.b64encode(f"{username}:{password}".encode()).decode()
+
+    return Response({
+        'message': 'User registered successfully',
+        'username': user.username,
+        'basic_token': f"Basic {basic_token}"
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 
 @api_view(['GET'])
