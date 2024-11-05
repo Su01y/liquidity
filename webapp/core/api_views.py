@@ -214,7 +214,7 @@ def create_bet(request: Request) -> Response:
 
     except Exception as e:
         return Response(
-            {"error": "Failed to load matter and idea price or process bet."},
+            {"error": f"Failed to load matter and idea price or process bet.\n{e}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
