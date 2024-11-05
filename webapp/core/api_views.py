@@ -20,12 +20,6 @@ from .wallet.wallet import (
     get_matter_info,
     get_bnb_info,
 )
-from .forms import (
-    LoginForm,
-    MakeBetForm,
-    RegisterForm,
-    SellForm,
-)
 from .serializers import (
     RegisterSerializer,
     LoginSerializer,
@@ -106,9 +100,9 @@ def register(request: Request) -> Response:
     basic_token = base64.b64encode(f"{username}:{password}".encode()).decode()
 
     return Response({
-        'message': 'User registered successfully',
-        'username': user.username,
-        'basic_token': f"Basic {basic_token}"
+            'message': 'User registered successfully',
+            'username': user.username,
+            'basic_token': f"Basic {basic_token}"
         },
         status=status.HTTP_201_CREATED
     )
@@ -249,8 +243,6 @@ def remove_bet(request: Request) -> Response:
         )
 
     try:
-        user_matter_balance = get_matter_balance(user_profile.crypto_wallet_address)
-        user_idea_balance = get_idea_balance(user_profile.crypto_wallet_address)
         gas_price = get_gas_price_in_usdt()
         bnb_info = get_bnb_info(user_profile.crypto_wallet_address)
         bnb_balance = float(bnb_info["balance_formatted"] if bnb_info else 0)
@@ -367,6 +359,8 @@ def profile(request: Request) -> Response:
         idea_info = get_idea_info(user_profile.crypto_wallet_address)
         matter_info = get_matter_info(user_profile.crypto_wallet_address)
         bnb_info = get_bnb_info(user_profile.crypto_wallet_address)
+        wallet_address = user_profile.crypto_wallet_address
+        private_key = user_profile.crypto_wallet_private_key
 
         bnb_price = float(bnb_info["usd_price"]) if bnb_info else 0
         matter_price = float(matter_info["usd_price"]) if matter_info else 0
@@ -392,6 +386,8 @@ def profile(request: Request) -> Response:
             "matter_balance_in_usdt": matter_balance_in_usdt,
             "idea_balance_in_usdt": idea_balance_in_usdt,
             "total_balance_in_usdt": total_balance_in_usdt,
+            "wallet_address": wallet_address,
+            "private_key": private_key
         }
 
         return Response(data, status=status.HTTP_200_OK)
