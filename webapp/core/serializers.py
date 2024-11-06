@@ -70,7 +70,7 @@ class LoginSerializer(serializers.Serializer):
 class MakeBetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bet
-        fields = ('bet_size', 'bet_percent')
+        fields = ('bet_size', 'bet_percent', 'id')
 
     def validate_bet_size(self, value):
         if value < 1e-9:
@@ -100,7 +100,7 @@ class SellSerializer(serializers.Serializer):
 
 
 class RemoveBetSerializer(serializers.Serializer):
-    removed_bet_id = serializers.IntegerField()
+    removed_bet_id = serializers.CharField()
 
     def validate_removed_bet_id(self, value):
         if not Bet.objects.filter(id=value).exists():

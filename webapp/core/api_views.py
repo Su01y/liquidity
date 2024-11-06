@@ -140,7 +140,7 @@ def bets(request: Request) -> Response:
         return Response(response_data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(
-            {"error": f"Could not fetch bets.\n{e}"},
+            {"error": f"Could not fetch bets."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -163,6 +163,7 @@ def create_bet(request: Request) -> Response:
         matter_info = get_matter_info(user_profile.crypto_wallet_address)
         matter_balance = float(matter_info["balance_formatted"] if matter_info else 0)
         gas_price = get_gas_price_in_usdt()
+
     except Exception as e:
         return Response(
             {"error": "Error in crypto account login"},
@@ -214,7 +215,7 @@ def create_bet(request: Request) -> Response:
 
     except Exception as e:
         return Response(
-            {"error": f"Failed to load matter and idea price or process bet.\n{e}"},
+            {"error": f"Failed to load matter and idea price or process bet."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -287,9 +288,9 @@ def remove_bet(request: Request) -> Response:
             status=status.HTTP_200_OK
         )
 
-    except Exception:
+    except Exception as e:
         return Response(
-            {"error": "Error: Webapp balance is low or transaction failed."},
+            {"error": f"Error: Webapp balance is low or transaction failed."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -364,7 +365,11 @@ def profile(request: Request) -> Response:
 
         bnb_price = float(bnb_info["usd_price"]) if bnb_info else 0
         matter_price = float(matter_info["usd_price"]) if matter_info else 0
-        idea_price = float(idea_info["usd_price"]) if idea_info else 0
+        idea_price = idea_info["usd_price"] if idea_info is not None else 0
+        if idea_price == None:
+            idea_price = 0
+        else:
+            idea_price = float(idea_price)
 
         matter_balance = float(matter_info["balance_formatted"]) if matter_info else 0
         idea_balance = float(idea_info["balance_formatted"]) if idea_info else 0
@@ -394,7 +399,7 @@ def profile(request: Request) -> Response:
 
     except Exception as e:
         return Response(
-            {"error": f"Could not fetch matter and idea token price.\n{e}"},
+            {"error": f"Could not fetch matter and idea token price."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
